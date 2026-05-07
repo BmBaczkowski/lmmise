@@ -82,7 +82,7 @@ params <- lmm_params(spec) |>
   ))
 
 # confirm all parameters are set
-check_params(params)  
+check_params(params)
 ```
 
 ### 3. Export for fitting with lme4

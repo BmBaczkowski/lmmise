@@ -119,7 +119,6 @@ print.lmm_params <- function(x, ...) {
 }
 
 .print_corr_matrix <- function(m, term_names, indent = 0) {
-
   col_width <- max(nchar(term_names)) + 2
 
   pad <- strrep(" ", indent)

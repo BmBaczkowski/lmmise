@@ -81,7 +81,7 @@ params <- lmm_params(spec) |>
   ))
 
 # confirm all parameters are set
-check_params(params)  
+check_params(params)
 #> ✔ All parameters set.
 ```
 
