@@ -9,27 +9,39 @@ on:
 jobs:
   R-CMD-check:
     runs-on: ubuntu-latest
-    container: rocker/r-ver:latest
+
+    container:
+      image: rocker/r-ver:latest
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
 
-      - name: Install pak and dependencies
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
+      - name: Install R packages
+        shell: Rscript {0}
         run: |
           install.packages("pak", repos = "https://cloud.r-project.org")
+          pak::pkg_install(c("rcmdcheck"))
           pak::local_install_deps(dependencies = TRUE)
-          pak::pkg_install("rcmdcheck")
-        shell: Rscript {0}
 
-      - name: Check
+      - name: Run R CMD check
+        shell: Rscript {0}
         run: |
           options(crayon.enabled = TRUE)
-          rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran"), error_on = "warning", check_dir = "check")
-        shell: Rscript {0}
+          rcmdcheck::rcmdcheck(
+            args = c("--no-manual", "--as-cran"),
+            error_on = "warning",
+            check_dir = "check"
+          )
 
       - name: Upload check results
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: R-CMD-check-results
-          path: check/
+          path: check
+          if-no-files-found: ignore
