@@ -1,0 +1,31 @@
+name: lint
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container: rocker/r-ver:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install R dependencies
+        run: |
+          install.packages("pak", repos = "https://cloud.r-project.org")
+          pak::local_install_deps(dependencies = TRUE)
+          pak::pkg_install("styler")
+        shell: Rscript {0}
+
+      - name: Run styler
+        run: styler::style_dir("R/")
+        shell: Rscript {0}
+
+      - name: Check for style changes
+        run: |
+          git diff --exit-code || (echo "Style issues detected. Run styler::style_dir('R/') locally and recommit." && exit 1)
+        shell: bash
