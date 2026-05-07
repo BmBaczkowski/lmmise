@@ -12,14 +12,14 @@ jobs:
     container: rocker/r-ver:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Install pak and dependencies
         run: |
           install.packages("pak", repos = "https://cloud.r-project.org")
           pak::local_install_deps(dependencies = TRUE)
           pak::pkg_install("rcmdcheck")
-        shell: Rscript {0
+        shell: Rscript {0}
 
       - name: Check
         run: |
