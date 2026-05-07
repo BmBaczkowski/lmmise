@@ -12,42 +12,62 @@ jobs:
       image: rocker/r-ver:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Show environment
+        run: |
+          echo "PWD:"
+          pwd
+
+          echo
+          echo "Files:"
+          ls -la
+
+          echo
+          echo "Git status:"
+          git status
 
       - name: Install dependencies
         shell: Rscript {0}
         run: |
+          options(warn = 2)
+
+          cat("Installing pak...\n")
           install.packages("pak", repos = "https://cloud.r-project.org")
+
+          cat("Installing styler...\n")
           pak::pkg_install("styler")
 
-      - name: Show R session info
-        shell: Rscript {0}
-        run: sessionInfo()
+          cat("Session info:\n")
+          print(sessionInfo())
 
       - name: Run styler
         shell: Rscript {0}
         run: |
+          cat("Running styler...\n")
+
           styler::style_pkg()
 
-      - name: Check for style changes
-        shell: bash
+          cat("Styler completed.\n")
+
+      - name: Show git diff
+        run: |
+          echo "Changed files:"
+          git diff --name-only || true
+
+          echo
+          echo "Full diff:"
+          git --no-pager diff || true
+
+      - name: Fail if formatting changed
         run: |
           if ! git diff --quiet; then
-            echo "================================="
-            echo "Style issues detected"
-            echo "================================="
-
             echo
-            echo "Changed files:"
-            git diff --name-only
-
-            echo
-            echo "Diff:"
-            git --no-pager diff
-
-            echo
+            echo "===================================="
+            echo "Formatting issues detected"
             echo "Run locally:"
             echo "styler::style_pkg()"
-
+            echo "===================================="
             exit 1
           fi
