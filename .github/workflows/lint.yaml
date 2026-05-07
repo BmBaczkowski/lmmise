@@ -1,3 +1,9 @@
+name: lint
+
+on:
+  push:
+  pull_request:
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -6,7 +12,8 @@ jobs:
       image: rocker/r-ver:latest
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout 
+        uses: actions/checkout@v5
 
       - name: Install system dependencies
         run: |
