@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(simMultiCov)
+library(lmmise)
 
-test_check("simMultiCov")
+test_check("lmmise")
