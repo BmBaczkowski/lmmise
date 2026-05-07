@@ -1,0 +1,134 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# lmmise
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/BmBaczkowski/lmmise/workflows/R-CMD-check/badge.svg)](https://github.com/BmBaczkowski/lmmise/actions/workflows/R-CMD-check.yaml)
+
+[![lint](https://github.com/BmBaczkowski/lmmise/actions/workflows/lint.yaml/badge.svg)](https://github.com/BmBaczkowski/lmmise/actions/workflows/lint.yaml)
+<!-- badges: end -->
+
+`lmmise` provides a domain-specific language (DSL) for specifying linear mixed-effects models and exporting them to fitting and simulation environments.
+
+## Core Concepts
+
+- **`lmm_spec()`** — Define the model skeleton (response variable, distribution, link).
+- **`set_fixed()`** — Add fixed effects via a formula (e.g., `y ~ 1 + x1 + x2`).
+- **`set_random()`** — Add random effects per grouping variable (e.g., `id ~ 1 + x1`). Supports correlated or independent random effects in the fitted model via `model_corr`.
+- **`lmm_params()`** — Create a parameter object initialized from a spec.
+- **`patch()`** — Fill parameter values (fixed effects, dispersion, random SDs, correlations) into the params object.
+- **`as_lme4()`** — Translate the spec to `lme4::lmer()` / `lme4::glmer()` formula and family.
+- **`as_simstudy()`** — Translate the spec + params to `simstudy` arguments for simulating random effects (`type = "rand_effects"`) or outcome data (`type = "outcome"`).
+- **`as_lmList()`** — Translate to `lme4::lmList()` formula syntax.
+
+## Installation
+
+You can install the development version of `lmmise` from GitHub with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("BmBaczkowski/lmmise")
+```
+
+Or using the `remotes` package:
+
+``` r
+# install.packages("remotes")
+remotes::install_github("BmBaczkowski/lmmise")
+```
+
+
+## Quick Start
+
+### 1. Define the model structure
+
+```{r}
+library(lmmise)
+
+# Specify a linear mixed model
+spec <- lmm_spec(response = "y", dist = "gaussian") |>
+  set_fixed(y ~ 1 + x1 + x2) |>
+  set_random(id ~ 1 + x1, model_corr = TRUE) |>
+  set_random(site ~ 1)
+```
+
+### 2. Set parameter values
+
+```{r}
+params <- lmm_params(spec) |>
+  patch(list(
+    beta = list(intercept = 1.0, x1 = 0.5, x2 = -0.3),
+    dispersion = 0.5,
+    random_sd = list(
+      id = list(intercept = 1.0, x1 = 0.3),
+      site = list(intercept = 0.5)
+    ),
+    random_corr = list(
+      id = list(structure = "cs", r = 0.3)
+    )
+  ))
+
+# confirm all parameters are set
+check_params(params)  
+```
+
+### 3. Export for fitting with lme4
+
+```{r}
+lme4_args <- as_lme4(spec, include_random = TRUE)
+# lme4_args$formula  -> y ~ 1 + x1 + x2 + (1 + x1 | id) + (1 | site)
+# lme4_args$family   -> gaussian(link = "identity")
+
+# Then fit with lme4:
+# fit <- lme4::lmer(lme4_args$formula, data = my_data)
+```
+
+### 4. Simulate data with simstudy
+
+```{r}
+# Random effects for simstudy::addCorData()
+re_args <- as_simstudy(spec, params, type = "rand_effects")
+
+# Outcome definition for simstudy::defDataAdd()
+out_args <- as_simstudy(spec, params, type = "outcome")
+```
+
+## Supported Distributions
+
+- `gaussian` (link: identity)
+- `binomial` (link: logit; dispersion fixed at 1)
+- `poisson`  (link: log; dispersion fixed at 1)
+- `gamma`    (link: inverse)
+
+## Random Effects Syntax
+
+- `id ~ 1`                     — random intercept only
+- `id ~ 1 + x1`                — random intercept + slope for `x1`
+- `id ~ 1 + x1, model_corr = TRUE`   — correlated effects in the fitted **lme4** model (`(1 + x1 | id)`)
+- `id ~ 1 + x1, model_corr = FALSE`  — uncorrelated effects in the fitted **lme4** model (`(1 | id) + (0 + x1 | id)`)
+
+The `model_corr` flag controls how random effects are written to the **lme4** formula.  It does *not* affect simulation correlation.  Simulation correlation is set separately in `patch(random_corr = ...)` using per-group entries.  Supported structures for simulation are:
+
+- **Independent (IND)** — `list(structure = "ind")` (diagonal correlation).
+- **Compound symmetry (CS)** — `list(structure = "cs", r = 0.3)` produces an exchangeable correlation with off-diagonal `r`.
+- **AR(1)** — `list(structure = "ar1", r = 0.5)` produces an AR(1) matrix where correlation decays as `r^|i-j|` according to term order.
+- **Toeplitz** — `list(structure = "toep", r = c(0.5, 0.2))` for a banded Toeplitz; supply `n-1` lags for `n` random terms.
+- **Unstructured (UN)** — `list(matrix = M)` where `M` is a square correlation matrix whose row/column names match the random terms (e.g., `"intercept"`, `"x1"`).
+
+
+## License
+
+MIT + file LICENSE
