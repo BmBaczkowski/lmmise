@@ -12,15 +12,18 @@ jobs:
       image: rocker/r-ver:latest
 
     steps:
-      - name: Checkout 
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      - name: Install system dependencies
+      - name: Install system libraries
         run: |
           apt-get update
-          apt-get install -y git
+          apt-get install -y \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev \
+            git
 
-      - name: Install dependencies
+      - name: Install R dependencies
         shell: Rscript {0}
         run: |
           install.packages("pak", repos = "https://cloud.r-project.org")
@@ -32,11 +35,12 @@ jobs:
           styler::style_pkg()
 
       - name: Check formatting
+        shell: bash
         run: |
-          git diff --name-only
           git --no-pager diff
 
           if ! git diff --quiet; then
-            echo "Formatting issues detected"
+            echo "Formatting issues detected."
+            echo "Run styler::style_pkg() locally."
             exit 1
           fi
