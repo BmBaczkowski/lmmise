@@ -43,7 +43,7 @@ describe("as_lme4", {
   })
 
   test_that("expand main terms to include interaction", {
-    spec <- set_fixed(lmm_spec(), y ~ 1 + x1*x2)
+    spec <- set_fixed(lmm_spec(), y ~ 1 + x1 * x2)
 
     result <- as_lme4(spec)
     expect_equal(deparse(result$formula), "y ~ 1 + x1 + x2 + x1:x2")
@@ -246,21 +246,22 @@ describe("as_simstudy outcome", {
 
   test_that("returns correct formula string with interactions", {
     spec <- set_random(
-      set_fixed(lmm_spec(), y ~ 1 + x1*x2), 
-      id ~ 1 + x1*x2)
+      set_fixed(lmm_spec(), y ~ 1 + x1 * x2),
+      id ~ 1 + x1 * x2
+    )
     params <- lmm_params(spec)
     params <- patch(params, list(
       beta = list(intercept = 1.0, x1 = 0.5, x2 = -1.0, "x1:x2" = 0.2),
       dispersion = 0.5,
       random_sd = list(id = list(
         intercept = 2, x1 = .5, x2 = 3, "x1:x2" = 2
-        )),
+      )),
       random_corr = list(id = list(structure = "ind"))
-      )
-    )
+    ))
 
     result <- as_simstudy(spec, params, type = "outcome")
-    expect_equal(result$formula, 
+    expect_equal(
+      result$formula,
       "1 + u0 + (0.5 + u1) * x1 + (-1 + u2) * x2 + (0.2 + u3) * x1*x2"
     )
   })

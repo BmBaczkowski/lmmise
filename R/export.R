@@ -167,7 +167,7 @@ as_simstudy <- function(spec, params, type = "rand_effects") {
     beta <- params$beta[[beta_name]]
     u_names <- u_map[[term]]
 
-    term_clean <- gsub(":", "*", term)  # Replace : with * for interactions
+    term_clean <- gsub(":", "*", term) # Replace : with * for interactions
 
     if (term == "1") {
       paste(c(beta, u_names), collapse = " + ")
