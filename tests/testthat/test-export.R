@@ -1,6 +1,10 @@
 describe("as_lme4", {
   test_that("returns formula and family", {
-    spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1), id ~ 1 + x1, model_corr = FALSE)
+    spec <- set_random(
+      set_fixed(lmm_spec(), y ~ 1 + x1),
+      id ~ 1 + x1,
+      model_corr = FALSE
+    )
 
     result <- as_lme4(spec)
     expect_true(inherits(result$formula, "formula"))
@@ -8,7 +12,11 @@ describe("as_lme4", {
   })
 
   test_that("correlated random effects use correct lme4 syntax", {
-    spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1), id ~ 1 + x1, model_corr = TRUE)
+    spec <- set_random(
+      set_fixed(lmm_spec(), y ~ 1 + x1),
+      id ~ 1 + x1,
+      model_corr = TRUE
+    )
 
     result <- as_lme4(spec)
     expect_equal(deparse(result$formula), "y ~ 1 + x1 + (1 + x1 | id)")
@@ -36,7 +44,15 @@ describe("as_lme4", {
   })
 
   test_that("multiple random groups produce correct formula", {
-    spec <- set_random(set_random(set_fixed(lmm_spec(), y ~ 1 + x1), id ~ 1, model_corr = FALSE), site ~ 1, model_corr = FALSE)
+    spec <- set_random(
+      set_random(
+        set_fixed(lmm_spec(), y ~ 1 + x1),
+        id ~ 1,
+        model_corr = FALSE
+      ),
+      site ~ 1,
+      model_corr = FALSE
+    )
 
     result <- as_lme4(spec)
     expect_equal(deparse(result$formula), "y ~ 1 + x1 + (1 | id) + (1 | site)")
@@ -123,7 +139,10 @@ describe("as_simstudy rand_effects", {
     params <- patch(params, list(
       beta = list(intercept = 1.0, x1 = 0.5),
       dispersion = 0.5,
-      random_sd = list(id = list(intercept = 1.0, x1 = 0.3), site = list(intercept = 0.5)),
+      random_sd = list(
+        id = list(intercept = 1.0, x1 = 0.3),
+        site = list(intercept = 0.5)
+      ),
       random_corr = list(id = list(structure = "cs", r = 0.3))
     ))
 
@@ -188,7 +207,10 @@ describe("as_lmList", {
   test_that("errors when cluster is not a single string", {
     spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1), id ~ 1)
 
-    expect_error(as_lmList(spec, cluster = c("id", "site")), "cluster must be a single character string")
+    expect_error(
+      as_lmList(spec, cluster = c("id", "site")),
+      "cluster must be a single character string"
+    )
     expect_error(as_lmList(spec, cluster = 1L), "cluster must be a single character string")
   })
 
@@ -196,6 +218,59 @@ describe("as_lmList", {
     spec <- lmm_spec()
 
     expect_error(as_lmList(spec, cluster = "id"), "call set_fixed\\(\\) first")
+  })
+
+  test_that("exclude_terms removes specified main effects", {
+    spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1 + x2), id ~ 1)
+
+    result <- as_lmList(spec, cluster = "id", exclude_terms = "x2")
+    expect_equal(deparse(result$formula), "y ~ 1 + x1 | id")
+  })
+
+  test_that("exclude_terms removes interactions containing excluded variables", {
+    spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1 * x2), id ~ 1)
+
+    result <- as_lmList(spec, cluster = "id", exclude_terms = "x2")
+    expect_equal(deparse(result$formula), "y ~ 1 + x1 | id")
+  })
+
+  test_that("exclude_terms with multiple exclusions", {
+    spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1 + x2 + x3), id ~ 1)
+
+    result <- as_lmList(spec, cluster = "id", exclude_terms = c("x1", "x3"))
+    expect_equal(deparse(result$formula), "y ~ 1 + x2 | id")
+  })
+
+  test_that("exclude_terms removes x1 but keeps intercept", {
+    spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1), id ~ 1)
+
+    result <- as_lmList(spec, cluster = "id", exclude_terms = "x1")
+    expect_equal(deparse(result$formula), "y ~ 1 | id")
+  })
+
+  test_that("exclude_terms errors when all terms are excluded", {
+    spec <- set_random(set_fixed(lmm_spec(), y ~ 0 + x1), id ~ 1)
+
+    expect_error(
+      as_lmList(spec, cluster = "id", exclude_terms = "x1"),
+      "No fixed terms remaining"
+    )
+  })
+
+  test_that("exclude_terms with empty vector does nothing", {
+    spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1), id ~ 1)
+
+    result1 <- as_lmList(spec, cluster = "id")
+    result2 <- as_lmList(spec, cluster = "id", exclude_terms = character(0))
+
+    expect_equal(result1$formula, result2$formula)
+  })
+
+  test_that("exclude_terms handles comma-separated input", {
+    spec <- set_random(set_fixed(lmm_spec(), y ~ 1 + x1 * x2), id ~ 1)
+
+    result <- as_lmList(spec, cluster = "id", exclude_terms = "x1, x2")
+    expect_equal(deparse(result$formula), "y ~ 1 | id")
   })
 })
 

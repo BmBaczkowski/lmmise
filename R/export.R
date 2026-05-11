@@ -61,9 +61,14 @@ as_lme4 <- function(spec, include_random = TRUE) {
 #' @param spec An `lmm_spec` object.
 #' @param cluster A single character string naming the grouping factor (must
 #'   appear in `spec$random`).
+#' @param exclude_terms A character vector of variable names to exclude from the
+#'   formula. Interaction terms containing any excluded variable will also be
+#'   removed. Comma-separated strings are automatically split. For example,
+#'   use \code{c("x1", "x2")} or \code{"x1, x2"} to exclude \code{x1} and
+#'   \code{x2} (and any interactions involving them).
 #' @return A list with elements `formula` and `family`.
 #' @export
-as_lmList <- function(spec, cluster) {
+as_lmList <- function(spec, cluster, exclude_terms = character(0)) {
   if (!inherits(spec, "lmm_spec")) stop("spec must be an lmm_spec object")
   if (is.null(spec$fixed$formula)) stop("spec has no fixed effects; call set_fixed() first")
   if (missing(cluster)) stop("cluster must be provided")
@@ -72,6 +77,18 @@ as_lmList <- function(spec, cluster) {
   }
   if (!cluster %in% names(spec$random)) {
     stop("cluster '", cluster, "' not found in spec random groups")
+  }
+
+  if (length(exclude_terms) > 0) {
+    # Allow comma-separated input for convenience
+    exclude_terms <- unique(trimws(unlist(strsplit(exclude_terms, ","))))
+    spec$fixed$terms <- spec$fixed$terms[sapply(spec$fixed$terms, function(term) {
+      components <- unlist(strsplit(term, ":"))
+      !any(components %in% exclude_terms)
+    })]
+  }
+  if (length(spec$fixed$terms) == 0) {
+    stop("No fixed terms remaining after exclusions")
   }
 
   fixed_str <- paste(spec$fixed$terms, collapse = " + ")
