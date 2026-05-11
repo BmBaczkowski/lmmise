@@ -4,13 +4,19 @@
 \alias{as_lmList}
 \title{Translate Spec to lmList Arguments}
 \usage{
-as_lmList(spec, cluster)
+as_lmList(spec, cluster, exclude_terms = character(0))
 }
 \arguments{
 \item{spec}{An \code{lmm_spec} object.}
 
 \item{cluster}{A single character string naming the grouping factor (must
 appear in \code{spec$random}).}
+
+\item{exclude_terms}{A character vector of variable names to exclude from the
+formula. Interaction terms containing any excluded variable will also be
+removed. Comma-separated strings are automatically split. For example,
+use \code{c("x1", "x2")} or \code{"x1, x2"} to exclude \code{x1} and
+\code{x2} (and any interactions involving them).}
 }
 \value{
 A list with elements \code{formula} and \code{family}.
