@@ -93,19 +93,35 @@ set_random <- function(spec, formula, model_corr = FALSE) {
   if (!inherits(spec, "lmm_spec")) stop("spec must be an lmm_spec object")
   if (!inherits(formula, "formula")) stop("formula must be of class 'formula'")
   if (length(formula) != 3) stop("formula must be of the form 'group ~ terms'")
-  if (!is.logical(model_corr)) stop("model_corr must be TRUE or FALSE")
+  if (!is.logical(model_corr) || length(model_corr) != 1L) {
+    stop("model_corr must be TRUE or FALSE")
+  }
 
   group <- as.character(formula[[2]])
-  if (group %in% names(spec$random)) stop("random group '", group, "' already defined")
 
-  rhs <- formula[[3]]
-  term_labels <- attr(stats::terms(formula[-2]), "term.labels")
-  term_names <- c(if (grepl("(^|\\+)\\s*1", deparse(rhs))) "1", term_labels)
+  if (group %in% names(spec$random)) {
+    stop("random group '", group, "' already defined")
+  }
 
-  if (length(term_names) == 0) stop("formula must have at least one term")
+  terms_obj <- stats::terms(formula[-2])
 
-  counter <- sum(vapply(spec$random, function(g) length(g$terms), integer(1)))
-  u_names <- stats::setNames(paste0("u", counter + seq_along(term_names) - 1), term_names)
+  term_names <- c(
+    if (attr(terms_obj, "intercept")) "1",
+    attr(terms_obj, "term.labels")
+  )
+
+  if (length(term_names) == 0L) {
+    stop("formula must have at least one term")
+  }
+
+  counter <- sum(
+    vapply(spec$random, function(g) length(g$terms), integer(1))
+  )
+
+  u_names <- stats::setNames(
+    paste0("u", counter + seq_along(term_names) - 1L),
+    term_names
+  )
 
   spec$random[[group]] <- list(
     terms      = term_names,
